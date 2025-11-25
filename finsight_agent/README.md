@@ -1,0 +1,66 @@
+# FinSight Agent – Autonomous AI Financial Analyst
+
+## 1. Overview
+FinSight Agent fetches market + news data, analyzes assets using AI and quant logic, and generates PDF investment reports automatically.
+
+## 2. Features
+✔ Multi-agent workflow
+✔ Tool calling (market API, news API, email)
+✔ Strategy configuration via web UI
+✔ PDF report with ratings and rationale
+✔ Supports scheduling and manual runs
+
+## 3. System Architecture
+```
+┌──────────────────────────┐
+│        Web Frontend      │  (Next.js - user creates strategy & views reports)
+└────────────┬─────────────┘
+             │  HTTP Request
+             ▼
+┌──────────────────────────┐
+│        FastAPI Backend    │  Receives run request / returns report
+└────────────┬─────────────┘
+             │ Calls Orchestrator
+             ▼
+┌──────────────────────────┐
+│    Agent Orchestrator     │  (LangGraph / Agent framework)
+└────────────┬─────────────┘
+   ┌─────────┼──────────┬──────────┐
+   ▼         ▼          ▼          ▼
+Market   Analysis     Report   Notification
+Data     Agent        Agent        Agent
+Agent                 (PDF)      (Email)
+```
+
+**Data Sources/Tools connected**
+
+* Market Data API
+* News API
+* Indicators Calculator
+* Email Sending Service
+* Database
+
+**Final Outputs**
+
+* Report in PDF/HTML + Dataset for dashboard
+* Email/web notification
+
+## 4. Implementation Details
+### List of agents:
+- PlannerAgent – creates workflow plan
+- MarketDataAgent – fetches live data via tools
+- AnalysisAgent – evaluates and rates assets
+- ReportAgent – generates PDF/HTML report
+- NotificationAgent – sends email
+
+### List of tools:
+- `market_api.py`
+- `news_api.py`
+- `indicators.py`
+- `email_service.py`
+
+## 5. How to Run
+### Backend
+1.  **Create a `.env` file** in the `backend` directory with your API keys (see `notebooks/demo_run.ipynb` for the required variables).
+2.  **Install dependencies:** `pip install -r backend/requirements.txt`
+3.  **Run the FastAPI server:** `uvicorn app.main:app --reload --ws-ping-interval 20 --ws-ping-timeout 20 --host 0.0.0.0 --port 8000`

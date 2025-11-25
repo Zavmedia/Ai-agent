@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from .. import auth, models, schemas, database
+from .. import auth, schemas
+from ..db import models, database
 
 router = APIRouter()
 
@@ -27,3 +28,20 @@ def login_for_access_token(form_data: schemas.UserCreate, db: Session = Depends(
         )
     access_token = auth.create_access_token(data={"sub": user.email})
     return {"access_token": access_token, "token_type": "bearer"}
+
+from ..agents import orchestrator
+
+@router.post("/agent")
+async def run_agent(request: schemas.AgentRequest, current_user: models.User = Depends(auth.get_current_user)):
+    graph = orchestrator.create_graph()
+    inputs = {"query": request.query, "user_email": current_user.email}
+
+    # The graph runs asynchronously. In a real app, you might use websockets
+    # or a task queue to notify the user when the run is complete.
+    # For this implementation, we'll run it synchronously and return the final state.
+    final_state = {}
+    for output in graph.stream(inputs):
+        for key, value in output.items():
+            final_state[key] = value
+
+    return {"status": "success", "final_state": final_state}
