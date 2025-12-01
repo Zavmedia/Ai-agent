@@ -1,5 +1,5 @@
 from langgraph.graph import StateGraph, END
-from typing import TypedDict, Annotated, List
+from typing import TypedDict, Annotated, List, Optional
 import operator
 from . import planner_agent, market_data_agent, analysis_agent, report_agent, notification_agent
 from ..tools import news_api
@@ -19,7 +19,7 @@ class AgentState(TypedDict):
     news_articles: Annotated[str, operator.add]
     analysis: str
     report: str
-    user_email: str
+    user_email: Optional[str]
 
 def run_planner(state):
     """
@@ -60,11 +60,15 @@ def run_report(state):
     return {"report": report}
 
 def run_notification(state):
-    notification_agent.get_notification_agent(
-        to_address=state["user_email"],
-        subject=f"FinSight Report for {state['query']}",
-        body=state["report"]
-    )
+    """
+    (Optional) Runs the notification agent if an email is provided.
+    """
+    if state.get("user_email"):
+        notification_agent.get_notification_agent(
+            to_address=state["user_email"],
+            subject=f"FinSight Report for {state['query']}",
+            body=state["report"]
+        )
     return {}
 
 def create_graph():
@@ -79,7 +83,6 @@ def create_graph():
     workflow.add_node("news_fetcher", run_news_fetcher)
     workflow.add_node("analysis", run_analysis)
     workflow.add_node("report", run_report)
-    workflow.add_node("notification", run_notification)
 
     # Define the sequence of execution
     workflow.set_entry_point("planner")
@@ -87,8 +90,7 @@ def create_graph():
     workflow.add_edge("market_data", "news_fetcher")
     workflow.add_edge("news_fetcher", "analysis")
     workflow.add_edge("analysis", "report")
-    workflow.add_edge("report", "notification")
-    workflow.add_edge("notification", END)
+    workflow.add_edge("report", END)
 
     return workflow.compile()
 
